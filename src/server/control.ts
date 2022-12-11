@@ -27,6 +27,10 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
     stdioOptions: ['ignore', 'pipe', 'inherit'],
     resolveOnData: true,
   });
+  const motionProcess = spawnProcess({
+    stdioOptions: ['ignore', 'pipe', 'inherit'],
+    resolveOnData: true,
+  });
 
   const status: RaspiControlStatus = {
     mode: 'Photo',
@@ -35,12 +39,21 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
   const startStream = async () => {
     actionProcess.stop();
     streamProcess.stop();
+    motionProcess.stop();
 
-    const mode = modeHelper.Stream(settingsHelper);
+    const streamMode = modeHelper.Stream(settingsHelper);
     logger.info('starting', 'Stream', '...');
 
-    return streamProcess.start(mode.command, mode.settings).catch((e: Error) => {
+    await streamProcess.start(streamMode.command, streamMode.settings).catch((e: Error) => {
       logger.error('stream failed:', e.message);
+      status.lastError = e.message;
+    });
+
+    const motionMode = modeHelper.Motion(settingsHelper);
+    logger.info('starting', 'Motion detector', '...');
+
+    await motionProcess.start(motionMode.command, motionMode.settings).catch((e: Error) => {
+      logger.error('motion failed:', e.message);
       status.lastError = e.message;
     });
   };
@@ -48,7 +61,7 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
   const getStream = () => streamProcess.output();
 
   const restartStream = async () => {
-    if (streamProcess.running()) {
+    if (streamProcess.running() || motionProcess.running()) {
       return startStream();
     }
   };
@@ -62,11 +75,13 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
     ...status,
     running: actionProcess.running(),
     streamRunning: streamProcess.running(),
+    motionRunning: motionProcess.running(),
   });
 
   const start = () => {
     streamProcess.stop();
     actionProcess.stop();
+    motionProcess.stop();
 
     status.running = true;
     const mode = modeHelper[status.mode](settingsHelper);
@@ -94,9 +109,9 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
 };
 
 const modeHelper: {
-  [key in RaspiMode | 'Stream']: (settingsHelper: SettingsHelper) => {
+  [key in RaspiMode | 'Stream' | 'Motion']: (settingsHelper: SettingsHelper) => {
     settings: Record<string, unknown>;
-    command: 'libcamera-still' | 'libcamera-vid';
+    command: 'libcamera-still' | 'libcamera-vid' | 'libcamera-motion';
   };
 } = {
   Photo: (settingsHelper: SettingsHelper) => {
@@ -140,10 +155,27 @@ const modeHelper: {
         ...camera.convert(),
         ...preview.convert(),
         ...stream.convert(),
-        timeout: 0,
         profile: 'baseline',
-        inline: true,
         output: '-',
+      },
+    };
+  },
+  Motion: (settingsHelper: SettingsHelper) => {
+    const { camera, preview, stream } = settingsHelper;
+
+    return {
+      command: 'libcamera-motion',
+      settings: {
+        ...camera.convert(),
+        ...preview.convert(),
+        ...stream.convert(),
+        inline: true,
+        circular: true,
+        output: '-',
+        'motion-output': 'motion',
+        'lores-width': 128,
+        'lores-height': 96,
+        'post-process-file': './motion_detect.json',
       },
     };
   },

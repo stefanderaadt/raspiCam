@@ -105,7 +105,10 @@ const server = (
         res.destroy();
       });
 
-      liveStream.pipe(res);
+      liveStream.pipe(res).on('error', (e) => {
+        console.error('error 2', e, e.message, e.stack);
+        control.stop();
+      });
     } else {
       res.status(503).send('Camera restarting or in use');
     }
