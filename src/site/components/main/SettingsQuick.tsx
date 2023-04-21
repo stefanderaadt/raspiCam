@@ -1,10 +1,10 @@
 import * as React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { CameraSetting, CameraSettingDesc } from '../../../shared/settings/camera';
-import { PhotoSetting, PhotoSettingDesc } from '../../../shared/settings/photo';
+//import { PhotoSetting, PhotoSettingDesc } from '../../../shared/settings/photo';
 import { ActiveSetting, Filler } from './Camera';
 import { AwbSetting, ExposureSetting, ShutterSetting } from './settings/CameraSettings';
-import { TimelapseSetting } from './settings/PhotoSettings';
+//import { TimelapseSetting } from './settings/PhotoSettings';
 
 //#region styled
 
@@ -36,27 +36,22 @@ const QuickSettingsContainer = styled.div`
 export interface QuickSettingsProps {
   activeSetting: ActiveSetting;
   camera: CameraSettingDesc;
-  photo: PhotoSettingDesc;
 
   activateSetting: (setting: ActiveSetting) => void;
   updateCamera: (data: CameraSetting) => void;
-  updatePhoto: (data: PhotoSetting) => void;
 }
 
 export const SettingsQuick: React.FC<QuickSettingsProps> = ({
   activeSetting,
   camera,
-  photo,
   activateSetting,
   updateCamera,
-  updatePhoto,
 }) => (
   <QuickSettingsPane>
     <QuickSettingsContainer>
       {activeSetting === 'Exposure' && <ExposureSetting data={camera} updateData={updateCamera} />}
       {activeSetting === 'Shutter' && <ShutterSetting data={camera} updateData={updateCamera} />}
       {activeSetting === 'AwbAuto' && <AwbSetting data={camera} updateData={updateCamera} />}
-      {activeSetting === 'Timelapse' && <TimelapseSetting data={photo} updateData={updatePhoto} />}
     </QuickSettingsContainer>
 
     <Filler enableClick={true} onClick={() => activateSetting(undefined)} />

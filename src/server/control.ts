@@ -12,7 +12,7 @@ const logger = createLogger('control');
 export interface RaspiControl {
   start: () => void;
   stop: () => void;
-  setMode: (mode: RaspiMode) => void;
+  //setMode: (mode: RaspiMode) => void;
   restartStream: () => Promise<void>;
   getStatus: () => RaspiControlStatus;
   getStream: () => internal.Readable | null | undefined;
@@ -22,12 +22,8 @@ export interface RaspiControl {
  * RaspiControl
  */
 const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
-  const actionProcess = spawnProcess();
+  //const actionProcess = spawnProcess();
   const streamProcess = spawnProcess({
-    stdioOptions: ['ignore', 'pipe', 'inherit'],
-    resolveOnData: true,
-  });
-  const motionProcess = spawnProcess({
     stdioOptions: ['ignore', 'pipe', 'inherit'],
     resolveOnData: true,
   });
@@ -37,79 +33,61 @@ const raspiControl = (settingsHelper: SettingsHelper): RaspiControl => {
   };
 
   const startStream = async () => {
-    actionProcess.stop();
+    //actionProcess.stop();
     streamProcess.stop();
-    motionProcess.stop();
 
-    const streamMode = modeHelper.Stream(settingsHelper);
+    const mode = modeHelper.Stream(settingsHelper);
     logger.info('starting', 'Stream', '...');
 
-    await streamProcess.start(streamMode.command, streamMode.settings).catch((e: Error) => {
+    await streamProcess.start(mode.command, mode.settings).catch((e: Error) => {
       logger.error('stream failed:', e.message);
-      status.lastError = e.message;
-    });
-
-    const motionMode = modeHelper.Motion(settingsHelper);
-    logger.info('starting', 'Motion detector', '...');
-
-    await motionProcess.start(motionMode.command, motionMode.settings).catch((e: Error) => {
-      logger.error('motion failed:', e.message);
       status.lastError = e.message;
     });
   };
 
-  const getStream = () => streamProcess.output();
+  const getStream = () => {
+    logger.info('getStream');
+    return streamProcess.output();
+  };
 
   const restartStream = async () => {
-    if (streamProcess.running() || motionProcess.running()) {
+    logger.info('restartStream');
+    if (streamProcess.running()) {
       return startStream();
     }
   };
 
-  const setMode = (mode: RaspiMode) => {
-    if (actionProcess.running()) stop();
-    status.mode = mode;
-  };
-
   const getStatus = () => ({
     ...status,
-    running: actionProcess.running(),
     streamRunning: streamProcess.running(),
-    motionRunning: motionProcess.running(),
   });
 
   const start = () => {
+    logger.info('start');
     streamProcess.stop();
-    actionProcess.stop();
-    motionProcess.stop();
 
     status.running = true;
-    const mode = modeHelper[status.mode](settingsHelper);
-    logger.info('starting', status.mode, '...');
-
-    actionProcess
-      .start(mode.command, mode.settings)
-      .then(() => startStream())
-      .catch((e: Error) => {
-        logger.error(status.mode, 'failed:', e.message);
-        status.lastError = e.message;
-      });
   };
 
   const stop = () => {
     logger.info('stop', status.mode, '...');
-    actionProcess.stop();
   };
 
-  startStream().catch(() => {
-    // not needed
+  startStream().catch((e) => {
+    logger.error('error startstream', e, e.message);
   });
 
-  return { start, stop, getStatus, setMode, restartStream, getStream };
+  return {
+    start,
+    stop,
+    getStatus,
+    restartStream,
+    getStream,
+  };
 };
 
 const modeHelper: {
-  [key in RaspiMode | 'Stream' | 'Motion']: (settingsHelper: SettingsHelper) => {
+  [key in RaspiMode | 'Stream']: (settingsHelper: SettingsHelper) => {
     settings: Record<string, unknown>;
     command: 'libcamera-still' | 'libcamera-vid' | 'libcamera-motion';
   };
@@ -150,29 +128,16 @@ const modeHelper: {
     const { camera, preview, stream } = settingsHelper;
 
     return {
-      command: 'libcamera-vid',
-      settings: {
-        ...camera.convert(),
-        ...preview.convert(),
-        ...stream.convert(),
-        profile: 'baseline',
-        output: '-',
-      },
-    };
-  },
-  Motion: (settingsHelper: SettingsHelper) => {
-    const { camera, preview, stream } = settingsHelper;
-
-    return {
       command: 'libcamera-motion',
       settings: {
         ...camera.convert(),
         ...preview.convert(),
         ...stream.convert(),
+        profile: 'baseline',
         inline: true,
-        circular: true,
+        circular: 40, // MegaBytes
         output: '-',
-        'motion-output': 'motion',
+        'motion-output': 'motions/motion',
         'lores-width': 128,
         'lores-height': 96,
         'post-process-file': './motion_detect.json',

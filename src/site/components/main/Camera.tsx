@@ -2,22 +2,22 @@ import * as React from 'react';
 import styled, { DefaultTheme } from 'styled-components';
 import { isDefined } from '../../../shared/helperFunctions';
 import { cameraSettingDesc } from '../../../shared/settings/camera';
-import { defaultRaspiStatus } from '../../../shared/settings/defaultSettings';
+//import { defaultRaspiStatus } from '../../../shared/settings/defaultSettings';
 import { applySettings } from '../../../shared/settings/helper';
-import { photoSettingDesc } from '../../../shared/settings/photo';
+//import { photoSettingDesc } from '../../../shared/settings/photo';
 import { previewSettingDesc } from '../../../shared/settings/preview';
 import { streamSettingDesc } from '../../../shared/settings/stream';
-import { RaspiStatus, Setting, TypeSetting } from '../../../shared/settings/types';
-import { vidSettingDesc } from '../../../shared/settings/vid';
+import { Setting, TypeSetting } from '../../../shared/settings/types';
+//import { RaspiStatus, Setting, TypeSetting } from '../../../shared/settings/types';
+//import { vidSettingDesc } from '../../../shared/settings/vid';
 import { useFetch } from '../common/hooks/useFetch';
-import { useFullscreen } from '../common/hooks/useFullscreen';
-import { Capture } from './Capture';
+//import { useFullscreen } from '../common/hooks/useFullscreen';
+//import { Capture } from './Capture';
 import { H264Player } from './H264Player';
-import { MJPEGPlayer } from './MJPEGPlayer';
-import { ModeToolbar } from './ModeToolbar';
+//import { MJPEGPlayer } from './MJPEGPlayer';
 import { SettingsAdvanced } from './SettingsAdvanced';
 import { SettingsQuick } from './SettingsQuick';
-import { SettingsToolbar } from './SettingsToolbar';
+//import { SettingsToolbar } from './SettingsToolbar';
 
 //#region styled
 
@@ -101,19 +101,19 @@ export interface Props {
 
 export const Camera: React.FC<Props> = ({ setTheme }) => {
   const mainRef = React.useRef<HTMLDivElement>(null);
-  const [isFullscreen, setFullscreen] = useFullscreen(mainRef);
+  //const [isFullscreen, setFullscreen] = useFullscreen(mainRef);
 
   const [loading, setLoading] = React.useState(false);
   const [activeSetting, setActiveSetting] = React.useState<ActiveSetting>();
 
-  const [status, setControl, refresh] = useFetch<RaspiStatus>(
-    'api/control',
-    defaultRaspiStatus,
-    1000,
-  );
+  // const [status, setControl, refresh] = useFetch<RaspiStatus>(
+  //   'api/control',
+  //   defaultRaspiStatus,
+  //   1000,
+  // );
 
-  const [photo, updatePhoto] = useFetchSettings('/api/photo', photoSettingDesc);
-  const [vid, updateVid] = useFetchSettings('/api/vid', vidSettingDesc);
+  //const [photo, updatePhoto] = useFetchSettings('/api/photo', photoSettingDesc);
+  //const [vid, updateVid] = useFetchSettings('/api/vid', vidSettingDesc);
   const [preview, updatePreview] = useFetchSettings('/api/preview', previewSettingDesc);
   const [camera, updateCamera] = useFetchSettings('/api/camera', cameraSettingDesc, setLoading);
   const [stream, updateStream] = useFetchSettings('/api/stream', streamSettingDesc, setLoading);
@@ -124,41 +124,35 @@ export const Camera: React.FC<Props> = ({ setTheme }) => {
   return (
     <MainContainer ref={mainRef}>
       <PlayerWrapper>
-        {stream.codec.value === 'MJPEG' ? (
+        {/*{stream.codec.value === 'MJPEG' ? (
           <MJPEGPlayer loading={loading || !!status.data.running} />
-        ) : (
+        ) : (*/}
           <H264Player loading={loading} />
-        )}
+        {/*)}*/}
       </PlayerWrapper>
 
-      <SettingsToolbar status={status.data} active={activeSetting} activate={activateSetting} />
+      {/*<SettingsToolbar status={status.data} active={activeSetting} activate={activateSetting} />*/}
 
       <MainPane>
         <OverlayContent>
-          <ModeToolbar
-            status={status.data}
-            setControl={setControl}
+          {/*<ModeToolbar
             isFullscreen={isFullscreen}
             setFullscreen={setFullscreen}
-          />
+      />*/}
         </OverlayContent>
 
         <OverlayContent>
-          <Capture status={status.data} refresh={refresh} />
+          {/*<Capture status={status.data} refresh={refresh} />*/}
         </OverlayContent>
 
         <OverlayContent>
           <SettingsAdvanced
             camera={camera}
-            photo={photo}
-            vid={vid}
             stream={stream}
             preview={preview}
             activeSetting={activeSetting}
             activateSetting={activateSetting}
             updateCamera={updateCamera}
-            updatePhoto={updatePhoto}
-            updateVid={updateVid}
             updateStream={updateStream}
             updatePreview={updatePreview}
             setTheme={setTheme}
@@ -169,11 +163,9 @@ export const Camera: React.FC<Props> = ({ setTheme }) => {
           <OverlayContent>
             <SettingsQuick
               camera={camera}
-              photo={photo}
               activeSetting={activeSetting}
               activateSetting={activateSetting}
               updateCamera={updateCamera}
-              updatePhoto={updatePhoto}
             />
           </OverlayContent>
         )}

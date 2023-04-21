@@ -2,17 +2,17 @@ import * as React from 'react';
 import styled, { DefaultTheme } from 'styled-components';
 import { isDefined } from '../../../shared/helperFunctions';
 import { CameraSetting, CameraSettingDesc } from '../../../shared/settings/camera';
-import { PhotoSetting, PhotoSettingDesc } from '../../../shared/settings/photo';
+//import { PhotoSetting, PhotoSettingDesc } from '../../../shared/settings/photo';
 import { PreviewSetting, PreviewSettingDesc } from '../../../shared/settings/preview';
 import { StreamSetting, StreamSettingDesc } from '../../../shared/settings/stream';
-import { VidSetting, VidSettingDesc } from '../../../shared/settings/vid';
+//import { VidSetting, VidSettingDesc } from '../../../shared/settings/vid';
 import { ActiveSetting, Filler } from './Camera';
 import { ApplicationSettings } from './settings/ApplicationSettings';
 import { CameraSettings } from './settings/CameraSettings';
-import { PhotoSettings } from './settings/PhotoSettings';
+//import { PhotoSettings } from './settings/PhotoSettings';
 import { PreviewSettings } from './settings/PreviewSettings';
 import { StreamSettings } from './settings/StreamSettings';
-import { VideoSettings } from './settings/VideoSettings';
+//import { VideoSettings } from './settings/VideoSettings';
 
 //#region styled
 
@@ -43,15 +43,11 @@ const SettingsContainer = styled.div<ContainerProps>`
 export interface SettingsProps {
   activeSetting: ActiveSetting;
   camera: CameraSettingDesc;
-  photo: PhotoSettingDesc;
-  vid: VidSettingDesc;
   stream: StreamSettingDesc;
   preview: PreviewSettingDesc;
 
   activateSetting: (setting: ActiveSetting) => void;
   updateCamera: (data: CameraSetting) => void;
-  updatePhoto: (data: PhotoSetting) => void;
-  updateVid: (data: VidSetting) => void;
   updateStream: (data: StreamSetting) => void;
   updatePreview: (data: PreviewSetting) => void;
   setTheme: (theme: DefaultTheme) => void;
@@ -59,15 +55,11 @@ export interface SettingsProps {
 
 export const SettingsAdvanced: React.FC<SettingsProps> = ({
   camera,
-  photo,
-  vid,
   stream,
   preview,
   activeSetting,
   activateSetting,
   updateCamera,
-  updatePhoto,
-  updateVid,
   updateStream,
   updatePreview,
   setTheme,
@@ -75,8 +67,6 @@ export const SettingsAdvanced: React.FC<SettingsProps> = ({
   <SettingsPane>
     <SettingsContainer show={activeSetting === 'Settings'}>
       <CameraSettings data={camera} updateData={updateCamera} />
-      <PhotoSettings data={photo} updateData={updatePhoto} />
-      <VideoSettings data={vid} updateData={updateVid} />
       <StreamSettings data={stream} updateData={updateStream} />
       <PreviewSettings data={preview} updateData={updatePreview} />
       <ApplicationSettings setTheme={setTheme} />

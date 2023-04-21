@@ -45,6 +45,10 @@ const start = () => {
    */
   httpServer.listen(8000);
   logger.success('server listening on', 8000);
+
+  /**
+   * Start livestream
+   */
 };
 
 start();

@@ -1,20 +1,23 @@
 import express from 'express';
 import path from 'path';
-import { isDefined } from '../shared/helperFunctions';
+//import { isDefined } from '../shared/helperFunctions';
 import {
-  RaspiGallery,
-  RaspiControlStatus,
+  //RaspiGallery,
+  //RaspiControlStatus,
   RaspiStatus,
-  raspiModes,
+  //raspiModes,
   GenericSettingDesc,
   Setting,
 } from '../shared/settings/types';
 import { RaspiControl } from './control';
+import { createLogger } from './logger';
 import { SettingsBase, SettingsHelper } from './settings';
-import { splitJpeg } from './splitJpeg';
+//import { splitJpeg } from './splitJpeg';
 import { FileWatcher } from './watcher';
 
 type SettingRequest = express.Request<undefined, undefined, Setting<GenericSettingDesc>>;
+
+const logger = createLogger('server');
 
 /**
  * Initialize the express server
@@ -31,15 +34,8 @@ const server = (
   app.use('/photos', express.static(fileWatcher.getPath()));
   app.use(express.json());
 
-  //#region Helper functions
-
   const getSettings = (x: SettingsBase) => (_: express.Request, res: express.Response) =>
     res.send(x.read());
-
-  const applySettings = (x: SettingsBase) => (req: SettingRequest, res: express.Response) => {
-    x.apply(req.body);
-    res.status(200).send(x.read());
-  };
 
   const applyAndRestart = (x: SettingsBase) => (req: SettingRequest, res: express.Response) => {
     const applied = x.apply(req.body);
@@ -56,8 +52,6 @@ const server = (
     latestFile: fileWatcher.getLatestFile(),
   });
 
-  //#endregion
-
   app.get('/api/camera', getSettings(settingsHelper.camera));
   app.post('/api/camera', applyAndRestart(settingsHelper.camera));
 
@@ -67,32 +61,8 @@ const server = (
   app.get('/api/stream', getSettings(settingsHelper.stream));
   app.post('/api/stream', applyAndRestart(settingsHelper.stream));
 
-  app.get('/api/vid', getSettings(settingsHelper.vid));
-  app.post('/api/vid', applySettings(settingsHelper.vid));
-
-  app.get('/api/photo', getSettings(settingsHelper.photo));
-  app.post('/api/photo', applySettings(settingsHelper.photo));
-
   app.get('/api/control', (_, res) => {
     res.send(getStatus());
-  });
-
-  app.post('/api/control', (req, res) => {
-    const body = req.body as RaspiControlStatus;
-    if (raspiModes.includes(body.mode)) {
-      control.setMode(body.mode);
-    }
-    res.send(getStatus());
-  });
-
-  app.get('/api/start', (_, res) => {
-    control.start();
-    res.status(200).send('ok');
-  });
-
-  app.get('/api/stop', (_, res) => {
-    control.stop();
-    res.status(200).send('ok');
   });
 
   app.get('/api/stream/live', (_, res) => {
@@ -102,61 +72,21 @@ const server = (
       res.writeHead(200, { 'Content-Type': 'video/mp4' });
 
       res.on('close', () => {
+        logger.info('close live stream');
         res.destroy();
       });
 
-      liveStream.pipe(res).on('error', (e) => {
-        console.error('error 2', e, e.message, e.stack);
+      liveStream.pipe(res, { end: false }).on('error', (e) => {
+        logger.error('pipe error', e, e.message, e.stack);
         control.stop();
       });
-    } else {
-      res.status(503).send('Camera restarting or in use');
-    }
-  });
 
-  app.get('/api/stream/mjpeg', (_, res) => {
-    const liveStream = control.getStream();
-
-    if (liveStream) {
-      const boundary = 'streamBoundary';
-      res.setHeader('Content-Type', 'multipart/x-mixed-replace;boundary="' + boundary + '"');
-      res.setHeader('Connection', 'close');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Cache-Control', 'no-cache, private');
-      res.setHeader('Expires', 0);
-      res.setHeader('Max-Age', 0);
-
-      liveStream.pipe(
-        splitJpeg((jpeg) => {
-          res.write(`Content-Type: image/jpeg\n`);
-          res.write(`Content-Length: ${jpeg.length}\n\n`);
-          res.write(jpeg);
-          res.write(`\n--${boundary}\n`);
-        }),
-      );
-
-      res.on('close', () => {
-        res.destroy();
+      liveStream.on('error', (e) => {
+        logger.error('liveStream error', e, e.message, e.stack);
       });
     } else {
       res.status(503).send('Camera restarting or in use');
     }
-  });
-
-  app.get('/api/gallery', (_, res) => {
-    const gallery: RaspiGallery = {
-      files: fileWatcher.getFiles(),
-    };
-    res.status(200).send(gallery);
-  });
-
-  app.post('/api/gallery/delete', (req, res) => {
-    const files =
-      Array.isArray(req.body) &&
-      req.body.map((value) => (typeof value === 'string' ? value : undefined)).filter(isDefined);
-
-    files && fileWatcher.deleteFiles(files);
-    res.status(200).send('Gallery files deleted');
   });
 
   // All other requests to index html

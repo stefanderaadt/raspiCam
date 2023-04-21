@@ -37,9 +37,15 @@ export const spawnProcess = (options?: {
 }): SpawnProcess => {
   let process: ChildProcess | undefined;
 
+  const streamReader = new Readable({
+    read() {},
+  });
+
   const stop = () => {
+    logger.info('Stopping process');
+
     if (process) {
-      process.stdout?.pause();
+      streamReader.pause();
       process.unref();
       process.kill();
       process = undefined;
@@ -47,7 +53,7 @@ export const spawnProcess = (options?: {
   };
 
   const running = () => !!process;
-  const output = () => process?.stdout;
+  const output = () => streamReader;
 
   const start = (command: string, args: Record<string, unknown>): Promise<void> =>
     new Promise<void>((resolve, reject) => {
@@ -56,10 +62,16 @@ export const spawnProcess = (options?: {
 
       process = spawn(command, spawnArgs, { stdio: options?.stdioOptions });
       if (options?.resolveOnData) {
-        process.stdout?.once('data', () => resolve());
+        streamReader.once('data', () => resolve());
       }
-      process.on('error', (e) => reject(e));
+      process.on('error', (e) => {
+        logger.error('SpawnProcess', 'error on process', e, e.message);
+        reject(e);
+      });
       process.on('exit', () => resolve());
+      process.stdout?.on('data', (data) => {
+        streamReader.push(data);
+      });
     });
 
   return { start, stop, running, output };
